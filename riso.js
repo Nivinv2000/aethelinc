@@ -73,6 +73,7 @@
   const seaLayer = document.createElement('canvas');
   let w = 0, h = 0, dpr = 1, hz = 0, F = 1;
   let stars = [], sparkles = [], turbines = [], ships = [], rig = null;
+  let S = 1, portrait = false, nodes = [], links = [], pulses = [];
 
   const tone = (L, extra = 0) => `rgb(${Math.round(L * 255)},0,${extra})`;     // r = tone, b = "always cream"
   const poly = (pts, fill) => { c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.closePath(); c.fillStyle = fill; c.fill(); };
@@ -124,51 +125,59 @@
     }
     c.beginPath(); c.arc(hx, hy, Math.max(1, 4 * s), 0, TAU); c.fill();
   }
-  function pool(x, y, rx, k) {                       // darker water around a hull, with cream ripple rings
-    c.fillStyle = tone(0.44); c.beginPath(); c.ellipse(x, y + 2, rx * 1.12, rx * 0.1 + 3, 0, 0, TAU); c.fill();
-    c.strokeStyle = tone(0.95); c.lineWidth = Math.max(1, 1.5 * k);
-    for (let i = 0; i < 3; i++) { c.beginPath(); c.ellipse(x, y + 3, rx * (1.1 + i * 0.12), rx * (0.085 + i * 0.012) + 2, 0, 0, TAU); c.stroke(); }
+  function pool(x, y, rx, k) {                       // thin ripple rings and a short reflection under the hull
+    c.lineWidth = Math.max(1, 1.5 * k);
+    for (let i = 0; i < 3; i++) {
+      c.strokeStyle = tone(i === 1 ? 0.97 : 0.3);
+      c.beginPath(); c.ellipse(x, y + 3, rx * (1.05 + i * 0.13), rx * (0.075 + i * 0.012) + 2, 0, 0, TAU); c.stroke();
+    }
+    c.fillStyle = tone(0.0);
+    for (let i = 0; i < 3; i++) c.fillRect(x - rx * (0.78 - i * 0.2), y + 6 + i * 5 * k, rx * (1.5 - i * 0.4), Math.max(1.2, 2 * k));
   }
 
   function layout() {
     seed = 21;
-    hz = Math.round(h * 0.58);
-    F = Math.max(w * 0.3, h * 0.55);
+    portrait = w / h < 0.9;
+    S = clamp(Math.min(w / 1440, h / 810), 0.4, 1.15);
+    hz = Math.round(h * (portrait ? 0.54 : 0.58));
+    F = portrait ? w * clamp(0.9 - w / 2200, 0.5, 0.78) : Math.max(w * 0.3, h * 0.55);
 
     // sea strokes, drawn once: cobalt streaks that thicken toward the viewer
-    seaLayer.width = w; seaLayer.height = h - hz;
+    const SW = w + 60;                                 // spare width so the drifting slices never show an edge
+    seaLayer.width = SW; seaLayer.height = h - hz;
     const s = seaLayer.getContext('2d');
     const g = s.createLinearGradient(0, 0, 0, h - hz);
     g.addColorStop(0, tone(0.93)); g.addColorStop(0.5, tone(0.82)); g.addColorStop(1, tone(0.56));
-    s.fillStyle = g; s.fillRect(0, 0, w, h - hz);
-    for (let i = 0, n = w * (h - hz) / 90; i < n; i++) {
+    s.fillStyle = g; s.fillRect(0, 0, SW, h - hz);
+    for (let i = 0, n = SW * (h - hz) / 90; i < n; i++) {
       const u = Math.pow(R(), 0.8), y = u * (h - hz), len = 6 + R() * (24 + u * 130), th = 0.8 + R() * (0.6 + u * 3.2);
-      s.fillStyle = tone(R() < 0.82 ? 0.36 : 0.0); s.fillRect(R() * w, y, len, th);
+      s.fillStyle = tone(R() < 0.82 ? 0.36 : 0.0); s.fillRect(R() * SW, y, len, th);
     }
-    for (let i = 0, n = w * (h - hz) / 260; i < n; i++) {
+    for (let i = 0, n = SW * (h - hz) / 260; i < n; i++) {
       const u = 0.25 + R() * 0.75, y = u * (h - hz), len = 10 + R() * (30 + u * 110);
-      s.fillStyle = tone(0.97); s.fillRect(R() * w, y, len, 1 + R() * (0.5 + u * 2));
+      s.fillStyle = tone(0.97); s.fillRect(R() * SW, y, len, 1 + R() * (0.5 + u * 2));
     }
 
     // sky
     stars = []; sparkles = [];
-    for (let i = 0; i < 330; i++) stars.push([R() * w, R() * hz * 0.96, 0.8 + R() * 1.6, R() * TAU]);
+    const nStars = clamp(Math.round(330 * (w * h) / (1440 * 810)), 110, 420);
+    for (let i = 0; i < nStars; i++) stars.push([R() * w, R() * hz * 0.96, 0.8 + R() * 1.6, R() * TAU]);
     for (let i = 0; i < 16; i++) sparkles.push([R() * w, R() * hz * 0.7, 5 + R() * 7, R() * TAU]);
 
     // objects: depth d runs from the horizon (0) toward the viewer (1)
     const at = d => hz + d * (h - hz) * 0.9;
     rig = { x: w * 0.13, d: 0.3 };
-    rig.y = at(rig.d); rig.k = 0.7 + rig.d * 2.1;
+    rig.y = at(rig.d); rig.k = (0.7 + rig.d * 2.1) * S;
     ships = [
       { type: 'cargo', x: w * 0.30, d: 0.78, sp: 3.0 }, { type: 'tanker', x: w * 0.68, d: 0.42, sp: -2.2 },
       { type: 'trawler', x: w * 0.9, d: 0.2, sp: -1.5 }, { type: 'trawler', x: w * 0.78, d: 0.86, sp: 2.4 },
       { type: 'tanker', x: w * 0.74, d: 0.07, sp: 1.0 }
-    ].map(o => ({ ...o, y: at(o.d), k: (o.type === 'trawler' ? 0.5 : 0.42) + o.d * (o.type === 'trawler' ? 1.5 : 1.7), ph: R() * TAU }));
+    ].map(o => ({ ...o, cx: o.x, y: at(o.d), k: ((o.type === 'trawler' ? 0.5 : 0.42) + o.d * (o.type === 'trawler' ? 1.5 : 1.7)) * S, ph: R() * TAU }));
 
     turbines = [];
     if (variant === 'handful') {
       const sc = [0.9, 0.82, 0.72, 0.64, 0.56, 0.5];
-      sc.forEach((s2, i) => turbines.push({ x: w * (0.4 + i * 0.054), base: hz + 7 + (0.9 - s2) * 8, s: s2 * (h / 640) * 0.9, L: 0, ang: R() * TAU, om: 0.5 + R() * 0.3 }));
+      sc.forEach((s2, i) => turbines.push({ x: w * (0.4 + i * 0.054), base: hz + 7 + (0.9 - s2) * 8, s: s2 * S * 0.9, L: 0, ang: R() * TAU, om: 0.5 + R() * 0.3 }));
     } else {
       for (let zi = 0; zi < 19; zi++) {
         const z = 380 * Math.pow(1.16, zi), sp = 460 + z * 0.06, sS = F / z;
@@ -182,6 +191,56 @@
       }
       turbines.sort((p, q) => q.z - p.z);
     }
+    // keep the area behind the rig clean
+    const rl = rig.x - 130 * rig.k, rr = rig.x + 125 * rig.k;
+    turbines = turbines.filter(tb => !(tb.x + 118 * tb.s > rl && tb.x - 118 * tb.s < rr));
+    buildNetwork();
+  }
+
+  // ---------- the network layer: a clean overlay above the printed world ----------
+  function buildNetwork() {
+    nodes = []; links = []; pulses = [];
+    const cols = portrait ? 4 : 8, rows = portrait ? 4 : 3;
+    const top = h * 0.07, band = hz * (portrait ? 0.5 : 0.4);
+    for (let r = 0; r < rows; r++) for (let q = 0; q < cols; q++) {
+      nodes.push({ x: w * (0.06 + 0.88 * (q + 0.5 + (R() - 0.5) * 0.7) / cols), y: top + band * (r + 0.5 + (R() - 0.5) * 0.7) / rows, ph: R() * TAU, mesh: true });
+    }
+    const meshN = nodes.length;
+    const have = new Set();
+    const link = (a, b, dashed) => { const key = a < b ? a + '_' + b : b + '_' + a; if (a === b || have.has(key)) return; have.add(key); links.push({ a, b, dashed }); };
+    for (let i = 0; i < meshN; i++) {
+      const near = [];
+      for (let j = 0; j < meshN; j++) if (j !== i) near.push([Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y), j]);
+      near.sort((p, q) => p[0] - q[0]);
+      for (let k = 0; k < 2 + (R() < 0.5 ? 1 : 0); k++) link(i, near[k][1], false);
+    }
+    // assets: the rig crown, ship masts and a few turbine hubs
+    const assets = [{ get: () => [rig.x - 43 * rig.k, rig.y - 190 * rig.k] }];
+    ships.forEach(sh => {
+      const off = sh.type === 'cargo' ? [115, -108] : sh.type === 'tanker' ? [-129, -96] : [-33, -88];
+      if (sh.d > 0.15) assets.push({ get: () => [sh.cx + off[0] * sh.k, sh.y + off[1] * sh.k] });
+    });
+    const big = turbines.slice().sort((p, q) => q.s - p.s);
+    const picked = [];
+    for (const tb of big) { if (picked.length >= (portrait ? 2 : 4)) break; if (picked.every(p => Math.abs(p.x - tb.x) > w * 0.16)) picked.push(tb); }
+    picked.forEach(tb => assets.push({ get: () => [tb.x, tb.base - 150 * tb.s] }));
+    assets.forEach(as => {
+      const [ax, ay] = as.get();
+      const idx = nodes.length; nodes.push({ x: ax, y: ay, ph: 0, asset: as });
+      const near = [];
+      for (let j = 0; j < meshN; j++) near.push([Math.hypot(ax - nodes[j].x, ay - nodes[j].y), j]);
+      near.sort((p, q) => p[0] - q[0]);
+      link(idx, near[0][1], true); link(idx, near[1][1], true);
+    });
+    for (let i = 0; i < (portrait ? 8 : 14); i++) pulses.push(newPulse(null));
+  }
+  function newPulse(from) {
+    const assetIdx = nodes.map((n, i) => (n.asset ? i : -1)).filter(i => i >= 0);
+    const start = from !== null ? from : assetIdx[(R() * assetIdx.length) | 0];
+    const opts = links.filter(l => l.a === start || l.b === start);
+    const l = opts[(Math.random() * opts.length) | 0];
+    if (!l) return { a: start, b: start, u: 1, sp: 0.4 };
+    return { a: start, b: l.a === start ? l.b : l.a, u: from !== null ? 0 : Math.random(), sp: 0.22 + Math.random() * 0.3 };
   }
 
   function resize() {
@@ -217,7 +276,7 @@
     c.fillStyle = tone(0.9); c.fillRect(0, hz, w, h - hz);
     for (let y = 0; y < h - hz; y += 5) {
       const d = y / (h - hz);
-      c.drawImage(seaLayer, 0, y, w, 5, Math.sin(y * 0.04 + t * 0.55) * (1 + d * 7), hz + y, w, 5);
+      c.drawImage(seaLayer, 0, y, w + 60, 5, -30 + Math.sin(y * 0.04 + t * 0.55) * (1 + d * 7), hz + y, w + 60, 5);
     }
     // stars, sparkles, moon, the dotted arc: drawn into the blue channel so they stay cream
     stars.forEach(([x, y, r, ph]) => { const tw = 0.5 + 0.5 * Math.sin(t * 1.3 + ph); if (tw > 0.28) { c.fillStyle = 'rgb(0,0,255)'; c.fillRect(x, y, r, r); } });
@@ -225,13 +284,9 @@
       const tw = 0.55 + 0.45 * Math.sin(t * 0.9 + ph); const s = r * tw; c.fillStyle = 'rgb(0,0,255)';
       poly([[x, y - s], [x + s * 0.18, y - s * 0.18], [x + s, y], [x + s * 0.18, y + s * 0.18], [x, y + s], [x - s * 0.18, y + s * 0.18], [x - s, y], [x - s * 0.18, y - s * 0.18]], c.fillStyle);
     });
-    const mx = w * 0.86, my = h * 0.17, mr = Math.max(22, h * 0.04);
+    const mr = Math.max(15, 31 * S), mx = w * 0.86, my = Math.max(h * 0.15, mr * 2.6);
     c.fillStyle = 'rgb(0,0,255)'; c.beginPath(); c.arc(mx, my, mr, 0, TAU); c.fill();
     c.fillStyle = tone(0.4); c.beginPath(); c.arc(mx + mr * 0.42, my - mr * 0.18, mr * 0.86, 0, TAU); c.fill();
-    const P0 = [w * 0.2, hz - h * 0.02], P1 = [w * 0.52, hz - h * 0.62], P2 = [w * 0.92, hz - h * 0.02];
-    const arc = u => [(1 - u) * (1 - u) * P0[0] + 2 * (1 - u) * u * P1[0] + u * u * P2[0], (1 - u) * (1 - u) * P0[1] + 2 * (1 - u) * u * P1[1] + u * u * P2[1]];
-    c.fillStyle = 'rgb(0,0,255)';
-    for (let i = 0; i < 120; i++) if (i % 2 === 0) { const [ax, ay] = arc(i / 120); c.fillRect(ax - 2, ay - 2, 4, 4); }
 
     // water pools and ripples first, then the silhouettes on top
     const bob = Math.sin(t * 0.8) * 1.2;
@@ -254,15 +309,42 @@
     gl.uniform2f(uRes, w, h); gl.uniform1f(uDrain, drain); gl.uniform1f(uTime, t);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
 
-    // the orange point rides the dotted arc, rig to horizon
+    // the network layer, crisp and clean over the print
     dctx.clearRect(0, 0, w, h);
-    const cyc = 15, u = (t % cyc) / cyc, e = u * u * (3 - 2 * u);
-    const [ox, oy] = arc(0.04 + 0.92 * e);
-    const a = (u < 0.07 ? u / 0.07 : u > 0.93 ? (1 - u) / 0.07 : 1) * (1 - intro);
-    const gr = dctx.createRadialGradient(ox, oy, 0, ox, oy, 22);
-    gr.addColorStop(0, `rgba(255,98,40,${0.5 * a})`); gr.addColorStop(1, 'rgba(255,98,40,0)');
-    dctx.fillStyle = gr; dctx.beginPath(); dctx.arc(ox, oy, 22, 0, TAU); dctx.fill();
-    dctx.fillStyle = `rgba(255,98,40,${a})`; dctx.beginPath(); dctx.arc(ox, oy, 4, 0, TAU); dctx.fill();
+    const alive = 1 - intro;
+    const pos = nodes.map(n => n.asset ? n.asset.get() : [n.x + Math.sin(t * 0.3 + n.ph) * 5, n.y + Math.cos(t * 0.27 + n.ph) * 4]);
+    dctx.lineWidth = 1;
+    links.forEach(l => {
+      const A = pos[l.a], B = pos[l.b];
+      dctx.setLineDash(l.dashed ? [3, 5] : []);
+      dctx.strokeStyle = `rgba(255,236,200,${(l.dashed ? 0.42 : 0.3) * alive})`;
+      dctx.beginPath(); dctx.moveTo(A[0], A[1]); dctx.lineTo(B[0], B[1]); dctx.stroke();
+    });
+    dctx.setLineDash([]);
+    nodes.forEach((n, i) => {
+      const [x, y] = pos[i];
+      if (n.asset) {
+        dctx.strokeStyle = `rgba(255,236,200,${0.7 * alive})`; dctx.beginPath(); dctx.arc(x, y, 4.5, 0, TAU); dctx.stroke();
+        dctx.fillStyle = `rgba(255,236,200,${alive})`; dctx.beginPath(); dctx.arc(x, y, 2, 0, TAU); dctx.fill();
+      } else {
+        const rr = 5 + 1.6 * Math.sin(t * 0.9 + n.ph);
+        dctx.strokeStyle = `rgba(255,236,200,${0.22 * alive})`; dctx.beginPath(); dctx.arc(x, y, rr, 0, TAU); dctx.stroke();
+        dctx.fillStyle = `rgba(255,236,200,${0.85 * alive})`; dctx.beginPath(); dctx.arc(x, y, 2.1, 0, TAU); dctx.fill();
+      }
+    });
+    const dtp = reduced ? 0 : 1 / 60;
+    pulses.forEach((p, i) => {
+      p.u += p.sp * dtp;
+      if (p.u >= 1) { pulses[i] = Object.assign(p, newPulse(p.b)); return; }
+      const A = pos[p.a], B = pos[p.b];
+      const x = A[0] + (B[0] - A[0]) * p.u, y = A[1] + (B[1] - A[1]) * p.u;
+      const u0 = Math.max(0, p.u - 0.14), tx = A[0] + (B[0] - A[0]) * u0, ty = A[1] + (B[1] - A[1]) * u0;
+      const gr = dctx.createLinearGradient(tx, ty, x, y);
+      gr.addColorStop(0, 'rgba(255,236,200,0)'); gr.addColorStop(1, `rgba(255,236,200,${0.9 * alive})`);
+      dctx.strokeStyle = gr; dctx.lineWidth = 1.6; dctx.beginPath(); dctx.moveTo(tx, ty); dctx.lineTo(x, y); dctx.stroke();
+      dctx.fillStyle = `rgba(255,248,225,${alive})`; dctx.beginPath(); dctx.arc(x, y, 2.4, 0, TAU); dctx.fill();
+    });
+    dctx.lineWidth = 1;
 
     if (visible && !reduced) raf = requestAnimationFrame(frame);
   }

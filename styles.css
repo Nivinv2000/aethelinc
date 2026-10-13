@@ -116,3 +116,9 @@ a { color: inherit; text-decoration: none; }
   html { scroll-behavior: auto; }
   .scroll span { animation: none; }
 }
+
+@media (max-width: 700px) {
+  .footer-bottom { position: absolute; left: var(--pad); top: 74px; padding: 0; margin: 0; z-index: 2; }
+  .wordmark { font-size: clamp(64px, 29vw, 220px); }
+  .nav { padding: 14px var(--pad); }
+}

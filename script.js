@@ -27,7 +27,7 @@ function drawStipple() {
   ctx.scale(dpr, dpr);
 
   // Place the mark: centred horizontally, base sitting low behind the wordmark.
-  const markH = h * 0.72;
+  const markH = Math.min(h * 0.72, w * 0.78);
   const k = markH / (960 - 355);
   const ox = w / 2 - 800 * k;
   const oy = h * 0.92 - 960 * k;
