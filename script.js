@@ -58,9 +58,9 @@ function drawStipple() {
   hc.drawImage(mask, 0, 0);
   const soft = hc.getImageData(0, 0, w, h).data;
 
-  ctx.fillStyle = '#efe6d6';
   const samples = Math.min(700000, Math.round(w * h * 0.5));
   const size = Math.max(1, w / 1100);
+  const BINS = 8, bins = Array.from({ length: BINS }, () => []);
   for (let i = 0; i < samples; i++) {
     const x = Math.random() * w;
     const y = Math.random() * h;
@@ -70,8 +70,14 @@ function drawStipple() {
     // Taper toward the apex so the top dissolves into grain, like the reference.
     const lift = Math.min(1, Math.max(0, (y - (h * 0.92 - markH)) / (markH * 0.55)));
     const p = Math.max(inside * (0.35 + 0.65 * lift), near * 0.28 * lift);
-    if (Math.random() < p) ctx.fillRect(x, y, size, size);
+    if (Math.random() < p) bins[Math.min(BINS - 1, (lift * BINS) | 0)].push(x, y);
   }
+  // Cool cream at the tip, warming toward the base like light from a low sun.
+  bins.forEach((pts, b) => {
+    const t = b / (BINS - 1);
+    ctx.fillStyle = `rgb(${Math.round(232 + 23 * t)},${Math.round(232 - 38 * t)},${Math.round(226 - 96 * t)})`;
+    for (let k = 0; k < pts.length; k += 2) ctx.fillRect(pts[k], pts[k + 1], size, size);
+  });
 }
 
 let ready = false;
@@ -84,15 +90,31 @@ window.addEventListener('resize', () => {
   t = setTimeout(build, 200);
 });
 
-// Scroll-linked: the grain mark rises and the wordmark settles as the footer
-// slides up over the hero. No timers, so it follows the scroll exactly.
+// Scroll-linked footer. On pages with a pinned hero (.stage) the footer is fixed
+// beneath it: as the hero's grain disperses and its backdrop fades, the mark rises
+// and the wordmark settles. On the older pages it follows the footer's own position.
+const stage = document.querySelector('.stage');
+const heroEl = document.querySelector('.hero');
 const wordmark = document.querySelector('.wordmark');
 const clamp01 = v => Math.min(1, Math.max(0, v));
+const ease = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 const onScroll = () => {
-  const q = clamp01((innerHeight - footer.getBoundingClientRect().top) / innerHeight);
-  const r = clamp01(q * 2.4);
-  canvas.style.clipPath = `inset(${((1 - r) * 100).toFixed(2)}% 0 0 0)`;
-  wordmark.style.transform = `translateY(${(9 + (1 - q) * 55).toFixed(2)}%)`;
+  let reveal, settle;
+  if (stage) {
+    const ds = clamp01(-stage.getBoundingClientRect().top / (0.9 * innerHeight));
+    heroEl.style.setProperty('--cover', (1 - ease(0.22, 0.85, ds)).toFixed(3));
+    reveal = ease(0.3, 0.95, ds);
+    settle = ease(0.35, 1, ds);
+  } else {
+    const q = clamp01((innerHeight - footer.getBoundingClientRect().top) / innerHeight);
+    reveal = clamp01(q * 2.4);
+    settle = q;
+  }
+  // soft rising edge instead of a hard clip line
+  const edge = (reveal * 125).toFixed(1);
+  const mask = `linear-gradient(to top, #000 ${(edge - 22).toFixed(1)}%, transparent ${edge}%)`;
+  canvas.style.webkitMaskImage = mask; canvas.style.maskImage = mask;
+  wordmark.style.transform = `translateY(${(9 + (1 - settle) * 45).toFixed(2)}%)`;
 };
 addEventListener('scroll', onScroll, { passive: true });
 addEventListener('resize', onScroll);
