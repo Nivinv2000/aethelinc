@@ -5,6 +5,7 @@
 // circles the structure on a dotted path.
 (() => {
   const hero = document.querySelector('.hero');
+  const stage = document.querySelector('.stage');
   const canvas = document.getElementById('cloud');
   const ctx = canvas.getContext('2d');
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -188,7 +189,9 @@
   const px = new Float32Array(N), py = new Float32Array(N), pz = new Float32Array(N);
   const pw = new Float32Array(N), pg = new Uint8Array(N), pth = new Float32Array(N);
   const YMIN = -90, YMAX = 76;
+  const vx = new Float32Array(N), vy = new Float32Array(N), vz = new Float32Array(N);
   for (let i = 0; i < N; i++) {
+    vx[i] = (R() - 0.5) * 150; vy[i] = 30 + R() * 150; vz[i] = (R() - 0.5) * 150;
     px[i] = P[i * 5]; py[i] = P[i * 5 + 1]; pz[i] = P[i * 5 + 2]; pw[i] = P[i * 5 + 3]; pg[i] = P[i * 5 + 4];
     pth[i] = Math.min(1, Math.max(0, (py[i] - YMIN) / (YMAX - YMIN) + (R() - 0.5) * 0.05));
     if (pg[i] === G.SEA) pth[i] = 0.5 + R() * 0.2;
@@ -246,6 +249,9 @@
     if (slow > 27 && stride < 3 && !reduced) { stride++; slow = 16; }
     const t = reduced ? 20 : (now - t0) / 1000;
     setCam(t);
+    const sr = stage.getBoundingClientRect();
+    const ds = Math.min(1, Math.max(0, -sr.top / (0.9 * innerHeight)));   // dissolve progress, 0..1
+    if (ds >= 1) { ctx.clearRect(0, 0, w, h); if (visible && !reduced) raf = requestAnimationFrame(frame); return; }
 
     const prog = Math.min(1, Math.max(0, (t - 0.4) / 7)), p = prog * prog * (3 - 2 * prog);
     const rescan = t > 12 ? ((t - 12) % 16) / 16 : -1;
@@ -258,7 +264,7 @@
     if ('letterSpacing' in ctx) ctx.letterSpacing = '1px';
     for (let y = -80; y <= 80; y += 10) {
       proj(0, y, 0, o);
-      const major = y % 40 === 0, a = Math.min(1, p * 3);
+      const major = y % 40 === 0, a = Math.min(1, p * 3) * (1 - Math.min(1, ds * 3));
       ctx.strokeStyle = `rgba(${CREAM},${(major ? 0.5 : 0.22) * a})`; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(0, o[1]); ctx.lineTo(major ? 16 : 9, o[1]); ctx.stroke();
       if (major) { ctx.fillStyle = `rgba(${CREAM},${0.45 * a})`; ctx.textAlign = 'left'; ctx.fillText(y > 0 ? `+${y}` : y < 0 ? `−${-y}` : '0', 22, o[1] + 3.5); }
@@ -268,12 +274,19 @@
     for (let i = 0; i < N; i += stride) {
       const th = pth[i];
       if (th > p) continue;
-      proj(px[i], py[i], pz[i], o);
+      let kd = 0;
+      if (ds > 0) {
+        kd = Math.min(1, Math.max(0, (ds - (1 - th) * 0.55) / 0.45));
+        if (kd >= 1) continue;
+      }
+      if (kd > 0) { const e = kd * kd; proj(px[i] + vx[i] * e, py[i] + vy[i] * e, pz[i] + vz[i] * e, o); }
+      else proj(px[i], py[i], pz[i], o);
       const sx = o[0], sy = o[1];
       if (sx < -2 || sx > w + 2 || sy < -2 || sy > h + 2) continue;
       shown++;
       let a = pw[i] * (0.4 + 0.6 * Math.min(1, Math.max(0, 1 - (o[2] + 120) / 240)));
       if (pg[i] === G.STRUCT && py[i] < 0) a *= 0.58;
+      if (kd > 0) a *= Math.pow(1 - kd, 1.2);
       const onFront = prog < 1 ? p - th < 0.018 : rescan >= 0 && Math.abs(rescan * 1.15 - 0.075 - th) < 0.012;
       if (onFront) { front[fn++] = sx; front[fn++] = sy; continue; }
       const b = Math.min(BUCKETS - 1, Math.max(0, (a * BUCKETS) | 0));
@@ -291,49 +304,36 @@
 
     // drone on a dotted loop around the structure
     const ang = t * 0.22, DR = [84, 60], DY = 64;
-    ctx.fillStyle = `rgba(${SIGNAL},${0.4 * Math.min(1, p * 2)})`;
+    ctx.fillStyle = `rgba(${SIGNAL},${0.4 * Math.min(1, p * 2) * (1 - Math.min(1, ds * 2.5))})`;
     for (let i = 0; i < 120; i++) {
       const a = (i / 120) * 6.2832;
       proj(Math.cos(a) * DR[0], DY, Math.sin(a) * DR[1], o);
       ctx.fillRect(o[0], o[1], 1.3, 1.3);
     }
     proj(Math.cos(ang) * DR[0], DY + 4 * Math.sin(t * 0.9), Math.sin(ang) * DR[1], o);
-    const dx = o[0], dy = o[1], da = Math.min(1, Math.max(0, (p - 0.55) * 3));
+    const dx = o[0], dy = o[1], da = Math.min(1, Math.max(0, (p - 0.55) * 3)) * (1 - Math.min(1, ds * 2.5));
     const g = ctx.createRadialGradient(dx, dy, 0, dx, dy, 16);
     g.addColorStop(0, `rgba(${SIGNAL},${0.45 * da})`); g.addColorStop(1, `rgba(${SIGNAL},0)`);
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(dx, dy, 16, 0, 6.3); ctx.fill();
     ctx.fillStyle = `rgba(${SIGNAL},${da})`; ctx.beginPath(); ctx.arc(dx, dy, 2.8, 0, 6.3); ctx.fill();
 
     // flags, once the scan has passed them
-    if (p > 0.9) {
-      const fa = Math.min(1, (p - 0.9) * 10);
+    if (p > 0.9 && ds < 0.25) {
+      const fa = Math.min(1, (p - 0.9) * 10) * (1 - Math.min(1, ds * 4));
       ctx.globalAlpha = fa;
       proj(34, 39, -10, o); label('P-01 / HELIDECK +39.0', o[0], o[1], 26, -44);
       proj(26, -80, 20, o); label('P-02 / SEABED −80.0', o[0], o[1], 46, -34);
       ctx.globalAlpha = 1;
     }
 
-    // readouts
-    const pct = Math.round(prog * 100);
-    hud.scan.textContent = `${String(pct).padStart(3, '0')}%`;
-    hud.pts.textContent = String(shown * stride).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-
     if (visible && !reduced) raf = requestAnimationFrame(frame);
   }
-
-  // ---------- HUD (plain DOM, same labels style as the other versions) ----------
-  const hud = {};
-  const mk = (cls, html) => {
-    const d = document.createElement('div'); d.className = `hud ${cls}`; d.innerHTML = html; hero.appendChild(d); return d;
-  };
-  mk('hud-tl', '<span>FIG. 01 / JACKET / POINT CLOUD</span><span class="dim">LOCAL GRID / 1 : 400</span>');
-  const bl = mk('hud-bl', '<span>SCAN <b id="h-scan">000%</b></span><span class="dim">POINTS <b id="h-pts">0</b></span>');
-  hud.scan = bl.querySelector('#h-scan'); hud.pts = bl.querySelector('#h-pts');
 
   let visible = true, raf = 0;
   const start = () => { if (!raf && visible) { last = performance.now(); raf = requestAnimationFrame(frame); } };
   new ResizeObserver(() => { resize(); if (reduced) frame(performance.now()); }).observe(hero);
-  new IntersectionObserver(([e]) => { visible = e.isIntersecting; start(); }).observe(hero);
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; start(); }).observe(stage);
+  if (reduced) addEventListener('scroll', () => frame(performance.now()), { passive: true });
   resize();
   (document.fonts?.ready || Promise.resolve()).then(start);
 })();

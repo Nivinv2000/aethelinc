@@ -84,7 +84,16 @@ window.addEventListener('resize', () => {
   t = setTimeout(build, 200);
 });
 
-// Rise into view when the footer is reached.
-new IntersectionObserver(([e]) => {
-  footer.classList.toggle('in', e.isIntersecting && ready);
-}, { threshold: 0.25 }).observe(footer);
+// Scroll-linked: the grain mark rises and the wordmark settles as the footer
+// slides up over the hero. No timers, so it follows the scroll exactly.
+const wordmark = document.querySelector('.wordmark');
+const clamp01 = v => Math.min(1, Math.max(0, v));
+const onScroll = () => {
+  const q = clamp01((innerHeight - footer.getBoundingClientRect().top) / innerHeight);
+  const r = clamp01(q * 2.4);
+  canvas.style.clipPath = `inset(${((1 - r) * 100).toFixed(2)}% 0 0 0)`;
+  wordmark.style.transform = `translateY(${(9 + (1 - q) * 55).toFixed(2)}%)`;
+};
+addEventListener('scroll', onScroll, { passive: true });
+addEventListener('resize', onScroll);
+onScroll();
