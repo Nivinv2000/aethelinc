@@ -21,23 +21,21 @@
 
 <main id="top">
   <section class="hero">
-    <div class="hero-art" aria-hidden="true">
-      <svg viewBox="440 300 720 760" class="mark-draw">
-        <g class="lines">
-          <path d="M800 355 L1110 960 L800 830 L490 960 Z"/>
-          <path d="M800 370 V830"/>
-          <path d="M790 400 L642 820"/>
-          <path d="M810 400 L958 820"/>
-          <path d="M800 688 L498 950"/>
-          <path d="M800 688 L1102 950"/>
-        </g>
-        <line class="water" x1="440" y1="1010" x2="1160" y2="1010"/>
-        <g class="ticks"><line x1="800" y1="1002" x2="800" y2="1018"/></g>
-        <line class="descent" x1="800" y1="320" x2="800" y2="830"/>
-        <circle class="lander" cx="800" cy="320" r="9"/>
-        <circle class="pad" cx="800" cy="830" r="9"/>
-      </svg>
+    <canvas id="sea" aria-hidden="true"></canvas>
+
+    <div class="hud hud-tl">
+      <span>FIG. 01 / OPEN WATER</span>
+      <span class="dim">LOCAL GRID / 1 : 400</span>
     </div>
+    <div class="hud hud-tr">
+      <span>N 12°41′</span>
+      <span class="dim">E 084°10′</span>
+    </div>
+    <div class="hud hud-bl">
+      <span>SS <b id="r-ss">03</b> / HEAVE <b id="r-heave">+0.00</b> M</span>
+      <span class="dim">YAW <b id="r-yaw">000</b></span>
+    </div>
+    <div class="hud hud-br dim">DRAG TO ADJUST</div>
 
     <a class="scroll" href="#contact" aria-label="Scroll down"><span></span></a>
   </section>
@@ -53,6 +51,7 @@
   <div class="wordmark" aria-hidden="true">AETHEL</div>
 </footer>
 
+<script src="sea.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

@@ -14,6 +14,6 @@ python3 -m http.server 8000   # then open http://localhost:8000
 
 ## To do
 
-- Landing section is a placeholder hero. Rework it.
+- Hero is a canvas scene (`sea.js`): a sea of points, a deck riding the swell, a point that settles onto it. Drag to turn the view and change the sea state. Labels are decoration only.
 - Footer is adapted from the Lumen Studio footer in the Figma "Footers" file: dark, stippled art, giant wordmark. The stipple is generated in `script.js` from the Aethel mark.
 - Add contact details to the footer when ready.

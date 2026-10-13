@@ -1,10 +1,3 @@
-// Hero: measure each path so the stroke can draw in.
-document.documentElement.classList.add('js');
-document.querySelectorAll('.mark-draw .lines path').forEach((path, i) => {
-  path.style.setProperty('--len', Math.ceil(path.getTotalLength()));
-  path.style.setProperty('--i', i);
-});
-
 // Footer: stipple the Aethel mark. Each facet of the mark gets its own dot
 // density, so the flat logo reads as a lit solid made of grain.
 const canvas = document.getElementById('stipple');
@@ -95,9 +88,3 @@ window.addEventListener('resize', () => {
 new IntersectionObserver(([e]) => {
   footer.classList.toggle('in', e.isIntersecting && ready);
 }, { threshold: 0.25 }).observe(footer);
-
-// Nav switches to light text once the dark footer reaches the top of the screen.
-const nav = document.querySelector('.nav');
-const syncNav = () => nav.classList.toggle('on-dark', footer.getBoundingClientRect().top < nav.offsetHeight);
-window.addEventListener('scroll', syncNav, { passive: true });
-syncNav();
