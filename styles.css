@@ -41,7 +41,8 @@ a { color: inherit; text-decoration: none; }
   touch-action: pan-y;
 }
 .hero.dragging { cursor: grabbing; }
-#sea { position: absolute; inset: 0; width: 100%; height: 100%; }
+#sea, #offshore { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hero-offshore { cursor: default; }
 .hud {
   position: absolute; z-index: 2; display: grid; gap: 6px; pointer-events: none;
   font: 400 12px/1 "IBM Plex Mono", monospace; letter-spacing: .14em; text-transform: uppercase;
