@@ -41,7 +41,7 @@ a { color: inherit; text-decoration: none; }
   touch-action: pan-y;
 }
 .hero.dragging { cursor: grabbing; }
-#sea, #offshore, #cloud { position: absolute; inset: 0; width: 100%; height: 100%; }
+#sea, #offshore, #cloud, #gl, #dot { position: absolute; inset: 0; width: 100%; height: 100%; }
 .hero-offshore { cursor: default; }
 .hud {
   position: absolute; z-index: 2; display: grid; gap: 6px; pointer-events: none;
@@ -66,6 +66,12 @@ a { color: inherit; text-decoration: none; }
 .stage .hero { position: sticky; top: 0; background: transparent; }
 .stage .hero::before { content: ""; position: absolute; inset: 0; background: var(--night); opacity: var(--cover, 1); pointer-events: none; }
 .has-stage .footer { position: fixed; inset: 0; z-index: 0; height: 100svh; min-height: 0; margin: 0; }
+
+/* RISO PAGES: deck palette (cobalt, navy, cream) */
+.riso { --night: #1640b2; --navy: #0e2670; --cream: #f6d29a; }
+.riso .footer { color: var(--cream); }
+.riso .wordmark { color: #fdeccd; }
+#dot { pointer-events: none; }
 
 /* FOOTER */
 .footer {

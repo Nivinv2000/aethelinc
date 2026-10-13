@@ -14,7 +14,9 @@ python3 -m http.server 8000   # then open http://localhost:8000
 
 ## To do
 
-- `index.html` is hero v5 (`windfarm.js`): an offshore wind farm of a few hundred turbines receding into fog, all rotors spinning, with glints on the water and the small orange point flying in. Disperses on scroll as the footer rises.
+- `index.html` is hero v6 (`riso.js`), variant "field": the deck's print look (cobalt, navy, cream, grain) drawn live. Stars, moon, rig, ships, hundreds of turbines, a dotted arc with a small orange point. A WebGL shader prints flat tones as three inks with ragged edges. Scrolling drains the cream sea to blue and uncovers the cobalt footer.
+- `handful.html` is the same scene with six turbines on the horizon, like the deck (variant "handful").
+- `v5.html` is hero v5 (`windfarm.js`): an offshore wind farm of a few hundred turbines receding into fog, all rotors spinning, with glints on the water and the small orange point flying in. Disperses on scroll as the footer rises.
 - `v4.html` is hero v4 (`refinery.js`): a generated point cloud of a full oil refinery (about 175k points) filling the screen, scanned in from the ground up, with steam, a flare and the small orange point. Disperses on scroll as the footer rises.
 - `v3.html` is hero v3 (`pointcloud.js`): a generated point cloud of a fixed offshore jacket platform (about 94k points), scanned into view from the seabed up, with a dotted loop and a small orange point. No orbit controls.
 - `v2.html` is hero v2 (`offshore-section.js`): a platform and turbines on the horizon, built from grain, with a small orange point drifting toward the helideck. No text.
