@@ -2,6 +2,8 @@
 
 One-page website for Aethel, an offshore aviation company.
 
+Structure: a landing section, then the footer. Nothing else. No deck content on the page.
+
 Plain HTML, CSS and a few lines of JS. No build step.
 
 ```bash
@@ -18,4 +20,6 @@ python3 -m http.server 8000   # then open http://localhost:8000
 ## To do
 
 - Replace the placeholder email in the Contact section (`index.html`).
-- Decide the final visual direction (this first pass is an editorial, line-drawing look with one signal-orange accent).
+- Landing section is a placeholder hero. Rework it.
+- Footer is adapted from the Lumen Studio footer in the Figma "Footers" file: dark, stippled art, giant wordmark. The stipple is generated in `script.js` from the Aethel mark.
+- Replace the placeholder email and LinkedIn in the footer.

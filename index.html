@@ -8,7 +8,7 @@
   <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&family=Jost:wght@300;400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400&family=Jost:wght@300;400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -18,18 +18,10 @@
     <img src="assets/mark.svg" alt="" width="26" height="26">
     <span>AETHEL</span>
   </a>
-  <nav>
-    <a href="#problem">Problem</a>
-    <a href="#build">Build</a>
-    <a href="#status">Status</a>
-    <a href="#team">Team</a>
-    <a href="#contact" class="pill">Contact</a>
-  </nav>
+  <a href="#contact" class="pill">Contact</a>
 </header>
 
 <main id="top">
-
-  <!-- HERO -->
   <section class="hero">
     <div class="hero-copy">
       <p class="label">AETHEL / OFFSHORE AVIATION</p>
@@ -48,141 +40,64 @@
           <path d="M800 688 L498 950"/>
           <path d="M800 688 L1102 950"/>
         </g>
-        <!-- waterline -->
         <line class="water" x1="440" y1="1010" x2="1160" y2="1010"/>
-        <g class="ticks">
-          <line x1="800" y1="1002" x2="800" y2="1018"/>
-        </g>
-        <!-- descent path and landing point -->
+        <g class="ticks"><line x1="800" y1="1002" x2="800" y2="1018"/></g>
         <line class="descent" x1="800" y1="320" x2="800" y2="830"/>
         <circle class="lander" cx="800" cy="320" r="9"/>
         <circle class="pad" cx="800" cy="830" r="9"/>
       </svg>
-      <p class="caption">The vertical axis is a descent path. The point lands on the deck.</p>
-    </div>
-  </section>
-
-  <!-- PROBLEM -->
-  <section id="problem" class="block">
-    <p class="label">01 / THE PROBLEM</p>
-    <h2>Most urgent parts are small. Getting them to sea is slow or costly.</h2>
-
-    <div class="stats">
-      <div class="stat">
-        <p class="num">7 in 10</p>
-        <p>resupply missions involve loads of 45 kg or less.</p>
-        <p class="src">Royal Fleet Auxiliary, UK Royal Navy, Dec 2021</p>
-      </div>
-      <div class="stat">
-        <p class="num">9 in 10</p>
-        <p>of the simple parts that take ships and aircraft out of service weigh under 23 kg.</p>
-        <p class="src">US Navy, via USNI News, Aug 2021</p>
-      </div>
     </div>
 
-    <ul class="compare">
-      <li><span>BOAT</span><b>up to 4 h</b><i>TFG Marine, 2025</i></li>
-      <li><span>HELICOPTER</span><b>about $5,000 an hour</b><i>Public estimates</i></li>
-      <li><span>DRONE</span><b>under 30 min</b><i>RWE trial, 2025</i></li>
-    </ul>
-    <p class="note">These are navy figures. We are measuring the commercial share with buyers.</p>
+    <a class="scroll" href="#contact" aria-label="Scroll down"><span></span></a>
   </section>
-
-  <!-- WHY NOW -->
-  <section id="now" class="block alt">
-    <p class="label">02 / WHY NOW</p>
-    <h2>Offshore drone cargo is flying. Buyers are signing.</h2>
-
-    <ol class="timeline">
-      <li><time>2024 to 2025</time><b>80+</b><p>RWE cargo-drone flights offshore.</p></li>
-      <li><time>2025</time><b>550+</b><p>Ørsted programme: flights to 400+ turbines.</p></li>
-      <li><time>Dec 2025</time><b>€30M</b><p>EMSA and Airbus framework (a ceiling) for ship-landing surveillance aircraft.</p></li>
-      <li><time>Sep 2026</time><b>DSV</b><p>Skyways commercial offshore deal.</p></li>
-    </ol>
-  </section>
-
-  <!-- BUILD -->
-  <section id="build" class="block">
-    <p class="label">03 / WHAT WE ARE BUILDING</p>
-    <h2>We build the aircraft and the autonomy together.</h2>
-
-    <div class="system">
-      <div class="system-tag">AETHEL AIRCRAFT</div>
-      <div class="system-grid">
-        <article>
-          <h3>Hardware</h3>
-          <p>Hybrid-electric UAV.</p>
-          <dl>
-            <div><dt>Range</dt><dd>1,000 km <em>target</em></dd></div>
-            <div><dt>Payload</dt><dd>50 kg <em>target</em></dd></div>
-          </dl>
-        </article>
-        <article>
-          <h3>Software</h3>
-          <p>Lands on moving ships, with or without GPS. Perception and deck-motion prediction run on board.</p>
-          <dl>
-            <div><dt>Landing</dt><dd>Moving deck, no pad <em>target</em></dd></div>
-            <div><dt>GPS</dt><dd>Not required <em>target</em></dd></div>
-          </dl>
-        </article>
-      </div>
-    </div>
-    <p class="note">Built as one system, so landing, power and airframe are designed together. The 30 kg battery demonstrator, with about 3 kg of payload, comes first to prove the landing.</p>
-  </section>
-
-  <!-- STATUS -->
-  <section id="status" class="block alt">
-    <p class="label">04 / WHERE WE ARE</p>
-    <h2>Design and simulation. No flight yet.</h2>
-    <p class="sub">We will publish successful landings per 100 attempts at a stated sea state, failures included.</p>
-
-    <ol class="pipeline">
-      <li class="done"><span>Done</span>Aerodynamic model of the demonstrator</li>
-      <li class="done"><span>Done</span>Hover and cruise analysis</li>
-      <li class="doing"><span>In progress</span>Landing simulation on a moving deck</li>
-      <li><span>Next</span>Motion platform with a bought-in drone</li>
-      <li><span>Next</span>Small moving boat</li>
-    </ol>
-  </section>
-
-  <!-- TEAM -->
-  <section id="team" class="block">
-    <p class="label">05 / TEAM</p>
-    <h2>Aerodynamics, controls and customers: one founder each.</h2>
-
-    <div class="team">
-      <article>
-        <h3>Nivin Vincent Raj</h3>
-        <p class="role">CEO</p>
-        <p>Buyers, funding, partnerships.</p>
-      </article>
-      <article>
-        <h3>Jaswanth Singh R</h3>
-        <p class="role">Chief Engineer</p>
-        <p>Aircraft design and landing simulation. MTech Aerospace, IIT Madras.</p>
-      </article>
-      <article>
-        <h3>Swapnil Mehta</h3>
-        <p class="role">CTO</p>
-        <p>Flight control, electronics, integration. Integrated MTech, IIT Madras.</p>
-      </article>
-    </div>
-    <p class="note">Hiring: autonomy and perception lead; hardware and structures lead.</p>
-  </section>
-
-  <!-- CONTACT -->
-  <section id="contact" class="block contact">
-    <p class="label">06 / CONTACT</p>
-    <h2>Run offshore logistics or operate an offshore site?<br>We want your real numbers.</h2>
-    <!-- TODO: replace with the real Aethel contact address -->
-    <a class="cta" href="mailto:hello@example.com">Talk to us</a>
-  </section>
-
 </main>
 
-<footer>
-  <span>AETHEL</span>
-  <span>Design stage. Numbers marked target are targets.</span>
+<footer id="contact" class="footer">
+  <canvas id="stipple" aria-hidden="true"></canvas>
+
+  <div class="footer-top">
+    <div class="footer-about">
+      <a class="brand light" href="#top">
+        <img src="assets/mark-light.svg" alt="" width="26" height="26">
+        <span>AETHEL</span>
+      </a>
+      <p>Autonomous aircraft that land on moving ships and offshore sites.</p>
+    </div>
+
+    <div class="footer-cols">
+      <div>
+        <h4>Focus</h4>
+        <ul>
+          <li>Offshore logistics</li>
+          <li>Inspection</li>
+          <li>Surveillance</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Status</h4>
+        <ul>
+          <li>Design stage</li>
+          <li>No flight yet</li>
+          <li>Landing simulation in progress</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <!-- TODO: real Aethel email and LinkedIn -->
+          <li><a href="mailto:hello@example.com">hello@example.com</a></li>
+          <li><a href="#">LinkedIn</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <span>© 2026 Aethel. All rights reserved.</span>
+    <span>Numbers marked target are targets.</span>
+  </div>
+
+  <div class="wordmark" aria-hidden="true">AETHEL</div>
 </footer>
 
 <script src="script.js"></script>
