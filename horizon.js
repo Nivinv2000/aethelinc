@@ -1,5 +1,5 @@
-// Single screen: open water before dawn. A low light travels slowly along the
-// horizon, throwing a long horizontal streak and a broken path across the sea.
+// Single screen: flying low and fast over open water before dawn. The sea streams
+// toward the viewer, the horizon banks gently, and a low light breathes on the horizon.
 // Everything is one fragment shader; grain is added to hide banding.
 (() => {
   const canvas = document.getElementById('sky');
@@ -15,46 +15,51 @@
     return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), f.x), f.y); }
   void main(){
     vec2 px = gl_FragCoord.xy;
-    vec2 uv = px / uRes;
     float asp = uRes.x / uRes.y;
-    float hz = 0.47;                                     // horizon, from the bottom
-    float y = uv.y - hz;
-    float x = (uv.x - 0.5) * asp;
+    vec2 uv = px / uRes;
+    // camera: flying low and fast over open water. A slow bank and a little altitude bob.
+    float bank = 0.045 * sin(uT * 0.23) + 0.02 * sin(uT * 0.61 + 1.3);
+    float bob = 0.012 * sin(uT * 0.37);
+    vec2 c = vec2((uv.x - 0.5) * asp, uv.y - 0.5);
+    c = mat2(cos(bank), -sin(bank), sin(bank), cos(bank)) * c;
+    float x = c.x;
+    float y = c.y + 0.5 - (0.47 + bob);                   // height above the horizon
 
-    // the light: drifts slowly across, never quite leaving the frame
-    float lx = (sin(uT * 0.045 - 1.2) * 0.62) * asp * 0.5;
+    // the light on the horizon: wanders a little and breathes on a ten-second cycle
+    float lx = 0.22 * asp * 0.5 * sin(uT * 0.11 - 0.6);
     float dx = x - lx;
-    float pulse = 0.85 + 0.15 * sin(uT * 0.31) * sin(uT * 0.17 + 1.);
+    float br = 0.5 + 0.5 * sin(uT * 0.62 - 1.57);          // 0..1
+    float pulse = 0.55 + 0.75 * br * br;
 
-    // sky: near-black at the top, cooler and lifted toward the horizon
+    // sky
     vec3 col = mix(vec3(0.02, 0.027, 0.047), vec3(0.075, 0.095, 0.14), smoothstep(0.55, 0.0, y));
-    // warm dome of light above the source
-    float dome = exp(-dx*dx*1.6) * exp(-max(y, 0.) * 5.5);
-    col += vec3(0.55, 0.36, 0.22) * dome * 0.55 * pulse;
-
-    // the streak: a thin, very wide horizontal flare at the horizon
-    float core = exp(-pow(y * uRes.y / 2.2, 2.)) * exp(-dx*dx*3.5);
+    float dome = exp(-dx*dx*(2.2 - br)) * exp(-max(y, 0.) * (6.5 - 2.5 * br));
+    col += vec3(0.55, 0.36, 0.22) * dome * 0.6 * pulse;
+    // horizon streak
+    float core = exp(-pow(y * uRes.y / 2.2, 2.)) * exp(-dx*dx*3.);
     float wide = exp(-pow(y * 34., 2.)) * exp(-abs(dx) * 1.1);
     float flare = exp(-pow(y * 9., 2.)) * exp(-dx*dx*9.);
-    col += vec3(1.0, 0.86, 0.66) * core * 1.4 * pulse;
-    col += vec3(1.0, 0.72, 0.48) * wide * 0.55 * pulse;
-    col += vec3(1.0, 0.78, 0.55) * flare * 0.35 * pulse;
+    col += vec3(1.0, 0.86, 0.66) * core * 1.5 * pulse;
+    col += vec3(1.0, 0.72, 0.48) * wide * 0.6 * pulse;
+    col += vec3(1.0, 0.78, 0.55) * flare * 0.4 * pulse;
 
-    // sea: darker below the horizon, with a broken path of light under the source
+    // sea, streaming toward the viewer
     if (y < 0.) {
       float d = -y;
-      col = mix(col, vec3(0.012, 0.018, 0.032), smoothstep(0.0, 0.25, d) * 0.85);
-      vec2 wp = vec2(x / (d + 0.004), 1. / (d + 0.004));   // perspective: world position on the water
-      float waves = n(vec2(wp.x * 2.2 + uT * 0.04, wp.y * 7. + uT * 0.6)) * 0.65 + n(vec2(wp.x * 5.5, wp.y * 17. - uT * 0.9)) * 0.35;
-      float ripple = smoothstep(0.58, 0.82, waves);
-      float path = exp(-dx*dx / (0.003 + d * d * 0.35)) * exp(-d * 5.5);
-      col += vec3(1.0, 0.78, 0.55) * path * ripple * 0.9 * pulse;
-      col += vec3(0.14, 0.17, 0.22) * ripple * exp(-d * 9.) * 0.25;     // faint swell everywhere near the horizon
+      col = mix(col, vec3(0.012, 0.018, 0.032), smoothstep(0.0, 0.22, d) * 0.88);
+      float z = 1. / (d + 0.003);                           // distance along the water
+      vec2 wp = vec2(x * z, z + uT * 9.);                   // forward motion
+      float waves = n(vec2(wp.x * 2.0, wp.y * 0.55)) * 0.6 + n(vec2(wp.x * 5.2 + 3., wp.y * 1.6 - uT * 0.7)) * 0.4;
+      float ripple = smoothstep(0.56, 0.8, waves);
+      float fine = smoothstep(0.7, 0.95, n(vec2(wp.x * 11., wp.y * 3.4 + uT * 1.3)));
+      float path = exp(-dx*dx / (0.004 + d * d * 0.5)) * exp(-d * 4.5);
+      col += vec3(1.0, 0.78, 0.55) * path * (ripple * 0.85 + fine * 0.5) * pulse;
+      col += vec3(0.16, 0.19, 0.25) * (ripple * 0.6 + fine * 0.4) * exp(-d * 5.) * 0.3;   // starlight on the swell
     }
 
     // vignette and grain
-    col *= 1. - 0.35 * pow(length((uv - 0.5) * vec2(1., 1.2)), 2.);
-    col += (h(px + fract(uT) * 91.) - 0.5) * 0.018;
+    col *= 1. - 0.38 * pow(length((uv - 0.5) * vec2(1., 1.2)), 2.);
+    col += (h(px + fract(uT * 7.) * 91.) - 0.5) * 0.02;
     gl_FragColor = vec4(col, 1.);
   }`;
   const sh = (t, src) => { const s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); return s; };
