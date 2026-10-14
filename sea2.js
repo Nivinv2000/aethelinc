@@ -11,7 +11,7 @@
 
   const VS = 'attribute vec2 p; void main(){ gl_Position = vec4(p, 0., 1.); }';
   const FS = `precision highp float;
-  uniform vec2 uRes; uniform float uT; uniform float uLook;
+  uniform vec2 uRes; uniform float uT; uniform float uLook; uniform float uBank;
   float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
   float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
     return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), f.x), f.y); }
@@ -43,7 +43,7 @@
     vec2 px = gl_FragCoord.xy;
     float asp = uRes.x / uRes.y;
     vec2 uv = px / uRes;
-    float bank = (uLook < .5 ? 0.012 : 0.006) * sin(uT * 0.21);
+    float bank = uBank * (uLook < .5 ? 0.012 : 0.006) * sin(uT * 0.21);
     vec2 c = vec2((uv.x - 0.5) * asp, uv.y - 0.5);
     c = mat2(cos(bank), -sin(bank), sin(bank), cos(bank)) * c;
     float x = c.x, y = c.y + 0.5 - 0.46;
@@ -90,7 +90,7 @@
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  const uRes = gl.getUniformLocation(prog, 'uRes'), uT = gl.getUniformLocation(prog, 'uT'), uLook = gl.getUniformLocation(prog, 'uLook');
+  const uRes = gl.getUniformLocation(prog, 'uRes'), uT = gl.getUniformLocation(prog, 'uT'), uLook = gl.getUniformLocation(prog, 'uLook'), uBank = gl.getUniformLocation(prog, 'uBank');
 
   const resize = () => {
     const dpr = Math.min(devicePixelRatio || 1, 1.5);
@@ -102,6 +102,7 @@
   const frame = now => {
     gl.uniform2f(uRes, canvas.width, canvas.height);
     gl.uniform1f(uLook, look);
+    gl.uniform1f(uBank, document.documentElement.dataset.bank === 'off' ? 0 : 1);
     gl.uniform1f(uT, reduced ? 20 : 20 + (now - t0) / 1000);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     if (!reduced && !document.hidden) raf = requestAnimationFrame(frame);
