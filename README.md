@@ -14,8 +14,9 @@ python3 -m http.server 8000   # then open http://localhost:8000
 
 ## To do
 
+- `index.html` is the dawn look (`sea2.js`, data-look="dawn"). Chosen.
 - `dawn.html` and `moon.html` (`sea2.js`): the sea drawn as a reflecting surface. Dawn: calm swells, cool white pre-dawn light. Moon: glassy sea, small white moon and its silver glitter path.
-- `index.html` is v7 (`horizon.js`): a single screen in the style of prometheus.ai. Flying low and fast over open water before dawn: the sea streams toward the viewer, the horizon banks, and a low light breathes on the horizon, the AETHEL wordmark centred, a one-line footer. No scroll, no other text.
+- `v7.html` is v7 (`horizon.js`): a single screen in the style of prometheus.ai. Flying low and fast over open water before dawn: the sea streams toward the viewer, the horizon banks, and a low light breathes on the horizon, the AETHEL wordmark centred, a one-line footer. No scroll, no other text.
 - `v6.html` is hero v6 (`riso.js`), variant "field": the deck's print look (cobalt, navy, cream, grain) drawn live. Stars, moon, rig, ships, hundreds of turbines, a dotted arc with a small orange point. A WebGL shader prints flat tones as three inks with ragged edges. The dotted arc and dot are gone: a faint network layer (nodes, links, travelling pulses) floats above the print and connects to the rig, ships and turbines. The area behind the rig is cleared of turbines. Layout scales for phone, tablet and desktop. Scrolling drains the cream sea to blue and uncovers the cobalt footer.
 - `handful.html` is the same scene with six turbines on the horizon, like the deck (variant "handful").
 - `v5.html` is hero v5 (`windfarm.js`): an offshore wind farm of a few hundred turbines receding into fog, all rotors spinning, with glints on the water and the small orange point flying in. Disperses on scroll as the footer rises.

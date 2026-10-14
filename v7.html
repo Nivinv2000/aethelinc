@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Aethel</title>
+  <meta name="theme-color" content="#05070c">
+  <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&family=Jost:wght@400&display=swap" rel="stylesheet">
+  <style>
+    :root { --ink: #05070c; --text: #f4efe6; --mute: rgba(244, 239, 230, .55); --pad: clamp(18px, 3.2vw, 40px); }
+    * { box-sizing: border-box; margin: 0; }
+    html, body { height: 100%; background: var(--ink); color: var(--text); overflow: hidden; }
+    body { font: 400 12px/1.4 "IBM Plex Mono", ui-monospace, monospace; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    .stage { position: fixed; inset: 0; height: 100svh; }
+    #sky {
+      position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+      /* fallback when WebGL is unavailable */
+      background:
+        radial-gradient(60% 9% at 50% 52%, rgba(255, 214, 160, .35), transparent 70%),
+        linear-gradient(#05070c 0%, #0b1220 48%, #151a24 52%, #05070c 100%);
+    }
+    h1 {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      font: 400 clamp(44px, 10.5vw, 168px)/1 "Jost", system-ui, sans-serif;
+      letter-spacing: .14em; margin-right: -.14em;  /* keep the spaced word optically centred */
+      white-space: nowrap; user-select: none;
+      opacity: 0; animation: rise 2.4s cubic-bezier(.2, .7, .2, 1) .5s forwards;
+    }
+    @keyframes rise { from { opacity: 0; letter-spacing: .22em; } to { opacity: 1; letter-spacing: .14em; } }
+    footer {
+      position: absolute; left: var(--pad); right: var(--pad);
+      bottom: max(var(--pad), env(safe-area-inset-bottom));
+      display: flex; justify-content: space-between; align-items: flex-end; gap: 16px;
+      color: var(--mute); letter-spacing: .04em;
+      opacity: 0; animation: fade 1.6s ease 1.6s forwards;
+    }
+    footer a:hover { color: var(--text); }
+    @keyframes fade { to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { h1, footer { animation: none; opacity: 1; } }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <canvas id="sky" aria-hidden="true"></canvas>
+    <h1>AETHEL</h1>
+    <footer>
+      <span>© 2026 Aethel</span>
+      <!-- TODO: real contact address -->
+      <a href="mailto:hello@example.com">Contact</a>
+    </footer>
+  </main>
+  <script src="horizon.js?v=4"></script>
+</body>
+</html>
