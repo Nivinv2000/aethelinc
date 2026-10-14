@@ -68,7 +68,7 @@ a { color: inherit; text-decoration: none; }
 .has-stage .footer { position: fixed; inset: 0; z-index: 0; height: 100svh; min-height: 0; margin: 0; }
 
 /* RISO PAGES: deck palette (cobalt, navy, cream) */
-.riso { --night: #1640b2; --navy: #0e2670; --cream: #f6d29a; }
+.riso { --night: #132463; --navy: #0e2670; --cream: #f6d29a; }
 .riso .footer { color: var(--cream); }
 .riso .wordmark { color: #fdeccd; }
 #dot { pointer-events: none; }

@@ -26,11 +26,23 @@
   const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
   const ease = (a, b, v) => { const t = clamp((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 
+  // ---------- palettes (?p=deck | soft | midnight | slate) ----------
+  const PAL = {
+    deck:     { navy: [0.055, 0.145, 0.43], cobalt: [0.086, 0.25, 0.70],  cream: [0.98, 0.82, 0.60], bg: '#1640b2' },
+    soft:     { navy: [0.07, 0.13, 0.31],   cobalt: [0.15, 0.29, 0.58],   cream: [0.96, 0.84, 0.66], bg: '#274a94' },
+    midnight: { navy: [0.03, 0.06, 0.16],   cobalt: [0.075, 0.14, 0.38],  cream: [0.96, 0.82, 0.60], bg: '#132463' },
+    slate:    { navy: [0.07, 0.10, 0.17],   cobalt: [0.16, 0.23, 0.36],   cream: [0.95, 0.84, 0.68], bg: '#293b5c' }
+  };
+  const palName = (new URLSearchParams(location.search).get('p') || document.documentElement.dataset.palette || 'midnight');
+  const pal = PAL[palName] || PAL.midnight;
+  document.documentElement.style.setProperty('--night', pal.bg);
+
   // ---------- WebGL: tones in, three inks out ----------
   const gl = glc.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false });
   if (!gl) return;
   const VS = `attribute vec2 p; varying vec2 vUv; void main(){ vUv = p*0.5+0.5; gl_Position = vec4(p,0.,1.); }`;
   const FS = `precision highp float;
+    uniform vec3 uNavy; uniform vec3 uCobalt; uniform vec3 uCream;
     uniform sampler2D uTex; uniform vec2 uRes; uniform float uDrain; uniform float uTime;
     varying vec2 vUv;
     float hash(vec2 p){ p = fract(p*vec2(123.34,456.21)); p += dot(p,p+45.32); return fract(p.x*p.y); }
@@ -47,8 +59,8 @@
       float n = vn(px*0.55)*0.45 + hash(floor(px))*0.55;                    // mid and fine grain
       float t = g + (n-0.5)*0.42;
       if (s.b > 0.5) t = 1.0;                                                // stars, moon, arc stay cream
-      vec3 navy = vec3(0.055,0.145,0.43), cobalt = vec3(0.086,0.25,0.70), cream = vec3(0.98,0.82,0.60);
-      cobalt = mix(cobalt, vec3(0.07,0.2,0.6), vn(px*0.012)*0.6);
+      vec3 navy = uNavy, cobalt = uCobalt, cream = uCream;
+      cobalt = mix(cobalt, cobalt*0.86, vn(px*0.012)*0.6);
       vec3 col = t < 0.2 ? navy : (t < 0.62 ? cobalt : cream);
       float sp = hash(floor(px*0.9)+7.);
       if (col == cream && sp > 0.972) col = cobalt;                           // paper showing through
@@ -65,6 +77,7 @@
   const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  const uNavyL = gl.getUniformLocation(prog, 'uNavy'), uCobaltL = gl.getUniformLocation(prog, 'uCobalt'), uCreamL = gl.getUniformLocation(prog, 'uCream');
   const uRes = gl.getUniformLocation(prog, 'uRes'), uDrain = gl.getUniformLocation(prog, 'uDrain'), uTime = gl.getUniformLocation(prog, 'uTime');
 
   // ---------- scene (flat tones on a hidden 2D canvas) ----------
@@ -306,6 +319,7 @@
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, scene);
+    gl.uniform3fv(uNavyL, pal.navy); gl.uniform3fv(uCobaltL, pal.cobalt); gl.uniform3fv(uCreamL, pal.cream);
     gl.uniform2f(uRes, w, h); gl.uniform1f(uDrain, drain); gl.uniform1f(uTime, t);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
 
