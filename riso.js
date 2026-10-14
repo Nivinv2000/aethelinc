@@ -323,9 +323,124 @@
     gl.uniform2f(uRes, w, h); gl.uniform1f(uDrain, drain); gl.uniform1f(uTime, t);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
 
-    // the network layer, crisp and clean over the print
+    // the layer above the print. ?layer=net | track | scan | routes | radar | none
     dctx.clearRect(0, 0, w, h);
     const alive = 1 - intro;
+    if (LAYER === 'net') drawNet(t, alive);
+    else if (LAYER === 'track') drawTrack(t, alive);
+    else if (LAYER === 'scan') drawScan(t, alive);
+    else if (LAYER === 'routes') drawRoutes(t, alive);
+    else if (LAYER === 'radar') drawRadar(t, alive);
+
+    if (visible && !reduced) raf = requestAnimationFrame(frame);
+  }
+
+
+  // ---------- layer concepts ----------
+  const LAYER = new URLSearchParams(location.search).get('layer') || 'net';
+  const CR = a => `rgba(255,86,34,${Math.min(1, a * 1.25)})`;   // the layer is drawn in the one colour the print never uses
+  function assetBoxes() {
+    const out = [{ id: 'RIG-01', x0: rig.x - 116 * rig.k, x1: rig.x + 104 * rig.k, y0: rig.y - 192 * rig.k, y1: rig.y + 4 }];
+    let v = 1;
+    ships.forEach(sh => {
+      const k = sh.k, e = sh.type === 'cargo' ? [-150, 178, -110] : sh.type === 'tanker' ? [-160, 176, -98] : [-50, 64, -90];
+      if (sh.cx + e[1] * k < 0 || sh.cx + e[0] * k > w) return;
+      out.push({ id: 'VSL-' + String(v++).padStart(2, '0'), x0: sh.cx + e[0] * k, x1: sh.cx + e[1] * k, y0: sh.y + e[2] * k, y1: sh.y + 4 });
+    });
+    const big = turbines.slice().sort((p, q) => q.s - p.s), picked = [];
+    for (const tb of big) { if (picked.length >= (portrait ? 2 : 4)) break; if (picked.every(p => Math.abs(p.x - tb.x) > w * 0.14)) picked.push(tb); }
+    picked.forEach((tb, i) => out.push({ id: 'WTG-' + (112 + i * 17), x0: tb.x - 118 * tb.s, x1: tb.x + 118 * tb.s, y0: tb.base - 270 * tb.s, y1: tb.base + 2 }));
+    return out;
+  }
+  function brackets(b, a, len) {
+    const L = Math.min(len, (b.x1 - b.x0) * 0.3, (b.y1 - b.y0) * 0.3);
+    dctx.strokeStyle = CR(a); dctx.beginPath();
+    [[b.x0, b.y0, 1, 1], [b.x1, b.y0, -1, 1], [b.x0, b.y1, 1, -1], [b.x1, b.y1, -1, -1]].forEach(([x, y, sx, sy]) => {
+      dctx.moveTo(x, y + sy * L); dctx.lineTo(x, y); dctx.lineTo(x + sx * L, y);
+    });
+    dctx.stroke();
+  }
+  function tag(text, x, y, a) {
+    dctx.lineWidth = 3; dctx.strokeStyle = `rgba(10,16,40,${0.55 * a})`;
+    dctx.font = `500 ${Math.round(clamp(10 * S + 2, 9, 12))}px "IBM Plex Mono", monospace`;
+    if ('letterSpacing' in dctx) dctx.letterSpacing = '1.2px';
+    dctx.textAlign = 'left'; dctx.strokeText(text, x, y); dctx.fillStyle = CR(a); dctx.fillText(text, x, y); dctx.lineWidth = 1.5;
+  }
+
+  // A: tracking. Quiet corner brackets on every asset; one at a time is "acquired".
+  function drawTrack(t, alive) {
+    const bx = assetBoxes(), cyc = 2.6, cur = Math.floor(t / cyc) % bx.length, ph = (t % cyc) / cyc;
+    dctx.lineWidth = 1.5;
+    bx.forEach((b, i) => {
+      const on = i === cur, grow = on ? 1 - Math.pow(1 - Math.min(1, ph * 3), 3) : 0;
+      const pad = 6 + (1 - grow) * 10 * (on ? 1 : 0);
+      const bb = { x0: b.x0 - pad, x1: b.x1 + pad, y0: b.y0 - pad, y1: b.y1 + pad };
+      brackets(bb, (on ? 0.95 : 0.35) * alive, on ? 14 : 8);
+      if (on) {
+        tag(b.id, bb.x0, bb.y0 - 8, 0.95 * alive * Math.min(1, ph * 4));
+        dctx.strokeStyle = CR(0.5 * alive); dctx.setLineDash([2, 4]);
+        dctx.beginPath(); dctx.moveTo((bb.x0 + bb.x1) / 2, bb.y0); dctx.lineTo((bb.x0 + bb.x1) / 2, bb.y0 - 4); dctx.stroke(); dctx.setLineDash([]);
+      }
+    });
+  }
+
+  // B: scan. A thin line sweeps across; anything it passes is briefly outlined and tagged.
+  function drawScan(t, alive) {
+    const cyc = 9, u = (t % cyc) / cyc, sx = -40 + u * (w + 80);
+    const g = dctx.createLinearGradient(sx - 120, 0, sx, 0);
+    g.addColorStop(0, CR(0)); g.addColorStop(1, CR(0.08 * alive));
+    dctx.fillStyle = g; dctx.fillRect(sx - 120, 0, 120, h);
+    dctx.fillStyle = CR(0.7 * alive); dctx.fillRect(sx, 0, 1.5, h);
+    dctx.lineWidth = 1.5;
+    assetBoxes().forEach(b => {
+      const since = (sx - b.x0) / w * cyc;                 // seconds since the line reached it
+      if (since < 0) return;
+      const a = alive * (since < 0.2 ? 1 : Math.max(0, 1 - (since - 0.2) / 2.2));
+      if (a <= 0.01) return;
+      brackets({ x0: b.x0 - 6, x1: Math.min(b.x1, sx) + 6, y0: b.y0 - 6, y1: b.y1 + 6 }, 0.9 * a, 12);
+      tag(b.id, b.x0 - 6, b.y0 - 13, a);
+    });
+  }
+
+  // C: routes on the water. Dotted lanes on the sea surface between assets, with cargo moving along them.
+  let routeDefs = null;
+  function drawRoutes(t, alive) {
+    const bx = assetBoxes(), foot = b => [(b.x0 + b.x1) / 2, b.y1 + 2];
+    const rigF = foot(bx[0]), others = bx.slice(1).filter(b => b.id.startsWith('WTG') || b.id.startsWith('VSL'));
+    dctx.lineWidth = 1;
+    others.forEach((b, i) => {
+      const P0 = rigF, P2 = foot(b), P1 = [(P0[0] + P2[0]) / 2, Math.max(P0[1], P2[1]) + h * 0.06 * (1 + (i % 2))];
+      const at = u => [(1 - u) * (1 - u) * P0[0] + 2 * (1 - u) * u * P1[0] + u * u * P2[0], (1 - u) * (1 - u) * P0[1] + 2 * (1 - u) * u * P1[1] + u * u * P2[1]];
+      dctx.fillStyle = CR(0.7 * alive);
+      for (let k = 0; k <= 80; k += 2) { const [x, y] = at(k / 80); dctx.fillRect(x - 1.3, y - 1.3, 2.6, 2.6); }
+      const u = ((t * 0.07 + i * 0.29) % 1), [x, y] = at(u);
+      dctx.fillStyle = `rgba(10,16,40,${alive})`; dctx.fillRect(x - 5, y - 5, 10, 10);
+      dctx.fillStyle = CR(alive); dctx.fillRect(x - 3.5, y - 3.5, 7, 7);
+    });
+    bx.forEach(b => { const [x, y] = foot(b); dctx.strokeStyle = CR(0.8 * alive); dctx.beginPath(); dctx.ellipse(x, y, 7, 3, 0, 0, TAU); dctx.stroke(); });
+  }
+
+  // D: radar. Range rings on the sea around the rig, a slow sweep, blips on the assets it passes.
+  function drawRadar(t, alive) {
+    const cx = rig.x, cy = rig.y + 4, sq = 0.22, ang = (t * 0.5) % TAU;
+    dctx.lineWidth = 1.5;
+    for (let r = 1; r <= 5; r++) { const R2 = r * w * 0.18; dctx.strokeStyle = CR((r === 5 ? 0.3 : 0.5) * alive); dctx.setLineDash(r % 2 ? [] : [3, 6]); dctx.beginPath(); dctx.ellipse(cx, cy, R2, R2 * sq, 0, 0, TAU); dctx.stroke(); }
+    dctx.setLineDash([]);
+    const ex = cx + Math.cos(ang) * w, ey = cy + Math.sin(ang) * w * sq;
+    dctx.strokeStyle = CR(0.6 * alive); dctx.beginPath(); dctx.moveTo(cx, cy); dctx.lineTo(ex, ey); dctx.stroke();
+    assetBoxes().slice(1).forEach(b => {
+      const x = (b.x0 + b.x1) / 2, y = b.y1, a2 = Math.atan2((y - cy) / sq, x - cx);
+      const since = ((ang - a2) % TAU + TAU) % TAU;
+      const a = alive * Math.max(0, 1 - since / 2.4);
+      if (a < 0.02) return;
+      dctx.fillStyle = CR(a); dctx.beginPath(); dctx.arc(x, y, 3, 0, TAU); dctx.fill();
+      dctx.strokeStyle = CR(a * 0.6); dctx.beginPath(); dctx.ellipse(x, y, 10, 4, 0, 0, TAU); dctx.stroke();
+      tag(b.id, x + 12, y - 6, a);
+    });
+  }
+
+  // the original constellation network
+  function drawNet(t, alive) {
     const pos = nodes.map(n => n.asset ? n.asset.get() : [n.x + Math.sin(t * 0.3 + n.ph) * 5, n.y + Math.cos(t * 0.27 + n.ph) * 4]);
     dctx.lineWidth = 1;
     links.forEach(l => {
@@ -359,8 +474,6 @@
       dctx.fillStyle = `rgba(255,248,225,${alive})`; dctx.beginPath(); dctx.arc(x, y, 2.4, 0, TAU); dctx.fill();
     });
     dctx.lineWidth = 1;
-
-    if (visible && !reduced) raf = requestAnimationFrame(frame);
   }
 
   const start = () => { if (!raf && visible) raf = requestAnimationFrame(frame); };
