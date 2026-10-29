@@ -70,6 +70,18 @@
       width: min(640px, calc(100% - 2 * var(--pad))); min-height: 3.2em; text-align: center;
       font: 400 clamp(14px, 1.5vw, 18px)/1.5 "Jost", system-ui, sans-serif; letter-spacing: .02em; color: var(--mute);
     }
+
+    /* SECTION 3: footer. The wordmark is made of dots that move away from the pointer. */
+    .site-footer { position: relative; height: 100svh; min-height: 480px; background: var(--ink); overflow: hidden; }
+    #dots { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
+    .site-footer .row {
+      position: absolute; left: var(--pad); right: var(--pad); z-index: 1; display: flex; justify-content: space-between; gap: 16px;
+      color: var(--mute); letter-spacing: .04em; pointer-events: none;
+    }
+    .site-footer .row a { pointer-events: auto; }
+    .site-footer .row a:hover { color: var(--text); }
+    .site-footer .top { top: var(--pad); }
+    .site-footer .bottom { bottom: max(var(--pad), env(safe-area-inset-bottom)); }
     @keyframes fade { to { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { h1, footer { animation: none; opacity: 1; } html { scroll-behavior: auto; } .sound i b { animation: none !important; } }
   </style>
@@ -88,13 +100,100 @@
     <h1>AETHEL</h1>
     <!-- ONE LINE GOES HERE: space is kept on purpose. Leave empty until the line is written. -->
     <p class="line" id="line"></p>
-    <footer>
-      <span>© 2026 Aethel</span>
+  </main>
+  <footer class="site-footer" id="footer">
+    <canvas id="dots" role="img" aria-label="AETHEL"></canvas>
+    <div class="row top">
       <!-- TODO: real contact address -->
       <a href="mailto:hello@example.com">Contact</a>
-    </footer>
-  </main>
-  <!-- SECTION 3: footer, added after the design is chosen -->
+      <span></span>
+    </div>
+    <div class="row bottom">
+      <span>© 2026 Aethel</span>
+      <a href="#film" id="replay">Back to the film</a>
+    </div>
+  </footer>
+  <script>
+    (() => {
+      const cv = document.getElementById('dots'), ctx = cv.getContext('2d');
+      const foot = document.getElementById('footer');
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let W = 0, H = 0, dpr = 1, P = [], mx = -1e4, my = -1e4, R = 120, vis = false, raf = 0, t0 = 0, r = 2;
+
+      const build = async () => {
+        try { await document.fonts.load('400 200px Jost'); } catch (e) {}
+        dpr = Math.min(devicePixelRatio || 1, 2);
+        W = foot.clientWidth; H = foot.clientHeight;
+        cv.width = W * dpr; cv.height = H * dpr;
+        const pad = Math.max(18, Math.min(40, innerWidth * .032));
+        // Fit the word to the width.
+        const probe = document.createElement('canvas').getContext('2d');
+        let size = 200; probe.font = `400 ${size}px Jost, sans-serif`;
+        const sp = .08; // letter spacing in em
+        const word = 'AETHEL';
+        const width = () => probe.measureText(word).width + sp * size * (word.length - 1);
+        size = size * (W - 2 * pad) / width();
+        const m = document.createElement('canvas'); m.width = W; m.height = H;
+        const mc = m.getContext('2d', { willReadFrequently: true });
+        mc.fillStyle = '#fff'; mc.textBaseline = 'alphabetic';
+        mc.font = `400 ${size}px Jost, sans-serif`;
+        let x = pad; const base = H * .62 + size * .36;
+        mc.strokeStyle = '#fff'; mc.lineJoin = 'round'; mc.lineWidth = size * .035; // a little weight so the dots read as solid letters
+        for (const ch of word) { mc.fillText(ch, x, base); mc.strokeText(ch, x, base); x += mc.measureText(ch).width + sp * size; }
+        const step = Math.max(4, Math.min(7, Math.round(W / 230)));
+        r = step * .4; R = Math.max(90, Math.min(170, W * .11));
+        const d = mc.getImageData(0, 0, W, H).data;
+        P = [];
+        for (let y = step / 2; y < H; y += step) for (let xx = step / 2; xx < W; xx += step) {
+          if (d[((y | 0) * W + (xx | 0)) * 4 + 3] > 128) {
+            const j = () => (Math.random() - .5) * step * .5;
+            P.push({ hx: xx + j() * .4, hy: y + j() * .4, x: Math.random() * W, y: H + Math.random() * H * .6, vx: 0, vy: 0,
+                     a: .55 + Math.random() * .45, delay: Math.random() * 900 + (xx / W) * 700 });
+          }
+        }
+        if (reduced) P.forEach(p => { p.x = p.hx; p.y = p.hy; });
+        t0 = performance.now(); draw(t0);
+      };
+
+      const draw = now => {
+        raf = 0;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#f4efe6';
+        const el = now - t0, R2 = R * R;
+        for (const p of P) {
+          if (!reduced) {
+            if (el > p.delay) {
+              const dx = p.x - mx, dy = p.y - my, d2 = dx * dx + dy * dy;
+              if (d2 < R2 && d2 > .01) { const d = Math.sqrt(d2), f = (1 - d / R) * 2.4; p.vx += dx / d * f; p.vy += dy / d * f; }
+              p.vx += (p.hx - p.x) * .035; p.vy += (p.hy - p.y) * .035;
+              p.vx *= .86; p.vy *= .86; p.x += p.vx; p.y += p.vy;
+            }
+          }
+          ctx.globalAlpha = p.a;
+          ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.2832); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        if (vis && !reduced) raf = requestAnimationFrame(draw);
+      };
+      const kick = () => { if (!raf) raf = requestAnimationFrame(draw); };
+
+      const move = e => { const b = cv.getBoundingClientRect(); mx = e.clientX - b.left; my = e.clientY - b.top; };
+      cv.addEventListener('pointermove', move);
+      cv.addEventListener('pointerdown', move);
+      cv.addEventListener('pointerleave', () => { mx = my = -1e4; });
+      cv.addEventListener('pointerup', e => { if (e.pointerType !== 'mouse') mx = my = -1e4; });
+
+      let started = false;
+      new IntersectionObserver(([e]) => {
+        vis = e.isIntersecting;
+        if (vis) { if (!started) { started = true; t0 = performance.now(); P.forEach(p => { p.x = Math.random() * W; p.y = H + Math.random() * H * .6; p.vx = p.vy = 0; }); } kick(); }
+      }, { threshold: .25 }).observe(foot);
+
+      let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { started = vis; build().then(kick); }, 150); });
+      build();
+    })();
+  </script>
   <script src="sea2.js?v=5"></script>
   <script>
     (() => {
