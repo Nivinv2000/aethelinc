@@ -94,21 +94,26 @@
 
   const resize = () => {
     const dpr = Math.min(devicePixelRatio || 1, 1.5);
-    canvas.width = Math.round(innerWidth * dpr); canvas.height = Math.round(innerHeight * dpr);
+    canvas.width = Math.round((canvas.clientWidth || innerWidth) * dpr); canvas.height = Math.round((canvas.clientHeight || innerHeight) * dpr);
     gl.viewport(0, 0, canvas.width, canvas.height);
   };
   const t0 = performance.now();
-  let raf = 0;
+  let raf = 0, onScreen = true;
   const frame = now => {
     gl.uniform2f(uRes, canvas.width, canvas.height);
     gl.uniform1f(uLook, look);
     gl.uniform1f(uBank, document.documentElement.dataset.bank === 'off' ? 0 : 1);
     gl.uniform1f(uT, reduced ? 20 : 20 + (now - t0) / 1000);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
-    if (!reduced && !document.hidden) raf = requestAnimationFrame(frame);
+    if (!reduced && !document.hidden && onScreen) raf = requestAnimationFrame(frame);
   };
   addEventListener('resize', () => { resize(); if (reduced) frame(performance.now()); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !reduced) { cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); } });
+  // The sea is one section of a longer page: stop drawing while it is off screen.
+  if ('IntersectionObserver' in window) new IntersectionObserver(([e]) => {
+    onScreen = e.isIntersecting;
+    if (onScreen && !reduced) { cancelAnimationFrame(raf); raf = requestAnimationFrame(frame); }
+  }).observe(canvas);
   resize();
   raf = requestAnimationFrame(frame);
 })();

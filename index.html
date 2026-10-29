@@ -12,10 +12,11 @@
   <style>
     :root { --ink: #05070c; --text: #f4efe6; --mute: rgba(244, 239, 230, .55); --pad: clamp(18px, 3.2vw, 40px); }
     * { box-sizing: border-box; margin: 0; }
-    html, body { height: 100%; background: var(--ink); color: var(--text); overflow: hidden; }
+    html { background: var(--ink); scroll-behavior: smooth; }
+    body { background: var(--ink); color: var(--text); }
     body { font: 400 12px/1.4 "IBM Plex Mono", ui-monospace, monospace; -webkit-font-smoothing: antialiased; }
     a { color: inherit; text-decoration: none; }
-    .stage { position: fixed; inset: 0; height: 100svh; }
+    .stage { position: relative; height: 100svh; overflow: hidden; }
     #sky {
       position: absolute; inset: 0; width: 100%; height: 100%; display: block;
       /* fallback when WebGL is unavailable */
@@ -39,20 +40,94 @@
       opacity: 0; animation: fade 1.6s ease 1.6s forwards;
     }
     footer a:hover { color: var(--text); }
+
+    /* SECTION 1: the film. Laptop file on wide screens, phone file on tall screens. */
+    .film { position: relative; height: 100svh; background: #000; overflow: hidden; }
+    .film video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+    .film button, .cue { font: inherit; color: var(--text); letter-spacing: .04em; }
+    .sound {
+      position: absolute; left: var(--pad); bottom: max(var(--pad), env(safe-area-inset-bottom)); z-index: 2;
+      display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer;
+      background: rgba(5, 7, 12, .35); border: 1px solid rgba(244, 239, 230, .35); border-radius: 999px;
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    }
+    .sound:hover { border-color: var(--text); }
+    .sound i { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+    .sound i b { width: 2px; background: currentColor; height: 4px; }
+    .sound[aria-pressed="true"] i b { animation: eq .9s ease-in-out infinite; }
+    .sound[aria-pressed="true"] i b:nth-child(2) { animation-delay: .15s; }
+    .sound[aria-pressed="true"] i b:nth-child(3) { animation-delay: .3s; }
+    @keyframes eq { 0%, 100% { height: 3px; } 50% { height: 12px; } }
+    .cue {
+      position: absolute; right: var(--pad); bottom: max(var(--pad), env(safe-area-inset-bottom)); z-index: 2;
+      background: none; border: 0; cursor: pointer; color: var(--mute); padding: 10px 0;
+    }
+    .cue:hover { color: var(--text); }
+
+    /* SECTION 2: one line under the wordmark. Space is kept; the words are added later. */
+    .line {
+      position: absolute; left: 50%; top: calc(50% + clamp(44px, 8vw, 120px)); transform: translateX(-50%);
+      width: min(640px, calc(100% - 2 * var(--pad))); min-height: 3.2em; text-align: center;
+      font: 400 clamp(14px, 1.5vw, 18px)/1.5 "Jost", system-ui, sans-serif; letter-spacing: .02em; color: var(--mute);
+    }
     @keyframes fade { to { opacity: 1; } }
-    @media (prefers-reduced-motion: reduce) { h1, footer { animation: none; opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { h1, footer { animation: none; opacity: 1; } html { scroll-behavior: auto; } .sound i b { animation: none !important; } }
   </style>
 </head>
 <body>
-  <main class="stage">
+  <section class="film" id="film" aria-label="Aethel teaser film">
+    <video id="teaser" muted playsinline preload="auto" autoplay poster="assets/video/teaser-16x9.jpg"></video>
+    <button class="sound" id="sound" type="button" aria-pressed="false" aria-label="Turn sound on">
+      <i aria-hidden="true"><b></b><b></b><b></b></i><span>Sound off</span>
+    </button>
+    <button class="cue" id="cue" type="button">Scroll</button>
+  </section>
+
+  <main class="stage" id="sea">
     <canvas id="sky" aria-hidden="true"></canvas>
     <h1>AETHEL</h1>
+    <!-- ONE LINE GOES HERE: space is kept on purpose. Leave empty until the line is written. -->
+    <p class="line" id="line"></p>
     <footer>
       <span>© 2026 Aethel</span>
       <!-- TODO: real contact address -->
       <a href="mailto:hello@example.com">Contact</a>
     </footer>
   </main>
-  <script src="sea2.js?v=4"></script>
+  <!-- SECTION 3: footer, added after the design is chosen -->
+  <script src="sea2.js?v=5"></script>
+  <script>
+    (() => {
+      const v = document.getElementById('teaser'), btn = document.getElementById('sound'), cue = document.getElementById('cue');
+      const sea = document.getElementById('sea');
+      const files = { wide: 'assets/video/teaser-16x9', tall: 'assets/video/teaser-9x16' };
+      const kind = () => (innerHeight > innerWidth ? 'tall' : 'wide');
+      let cur = '';
+      const load = () => {
+        const k = kind(); if (k === cur) return;
+        const t = cur ? v.currentTime : 0, wasPlaying = !v.paused && !v.ended; cur = k;
+        v.poster = files[k] + '.jpg'; v.src = files[k] + '.mp4';
+        v.addEventListener('loadedmetadata', () => { if (t) v.currentTime = Math.min(t, v.duration - .05); if (wasPlaying || !t) v.play().catch(() => {}); }, { once: true });
+      };
+      load();
+      addEventListener('resize', load);
+
+      // Sound: browsers only allow it after a tap, so it starts off with a button.
+      const setSound = on => {
+        v.muted = !on; btn.setAttribute('aria-pressed', on);
+        btn.setAttribute('aria-label', on ? 'Turn sound off' : 'Turn sound on');
+        btn.querySelector('span').textContent = on ? 'Sound on' : 'Sound off';
+      };
+      btn.addEventListener('click', () => { setSound(v.muted); if (v.ended && !v.muted) { v.currentTime = 0; } v.play().catch(() => {}); });
+
+      // When the film ends, move down to the sea (only if the visitor is still on the film).
+      const down = () => sea.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      cue.addEventListener('click', down);
+      v.addEventListener('ended', () => { if (scrollY < innerHeight * .3) setTimeout(() => { if (scrollY < innerHeight * .3) down(); }, 600); });
+
+      // Do not play in the background once the visitor has scrolled away.
+      new IntersectionObserver(([e]) => { if (!e.isIntersecting) v.pause(); else if (!v.ended) v.play().catch(() => {}); }, { threshold: .15 }).observe(document.getElementById('film'));
+    })();
+  </script>
 </body>
 </html>
