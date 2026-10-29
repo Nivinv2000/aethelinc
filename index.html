@@ -16,17 +16,6 @@
     body { background: var(--ink); color: var(--text); }
     body { font: 400 12px/1.4 "IBM Plex Mono", ui-monospace, monospace; -webkit-font-smoothing: antialiased; }
     a { color: inherit; text-decoration: none; }
-    /* SECTION 2: a quiet bridge between the film and the footer. Same dot language as the footer. */
-    .bridge { position: relative; height: 100svh; min-height: 480px; background: var(--ink); overflow: hidden; }
-    #waves { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-    .bridge p {
-      position: absolute; left: 50%; top: 24%; transform: translateX(-50%); width: min(900px, calc(100% - 2 * var(--pad))); text-align: center;
-      font: 400 clamp(26px, 4.4vw, 60px)/1.15 "Jost", system-ui, sans-serif; letter-spacing: -.005em;
-      opacity: 0; transition: opacity 1.4s ease .3s;
-    }
-    .bridge.in p { opacity: 1; }
-    @media (prefers-reduced-motion: reduce) { .bridge p { transition: none; opacity: 1; } }
-
     /* SECTION 1: the film. Laptop file on wide screens, phone file on tall screens. */
     .film { position: relative; height: 100svh; background: #000; overflow: hidden; }
     .film video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -57,7 +46,7 @@
       font: 400 clamp(14px, 1.5vw, 18px)/1.5 "Jost", system-ui, sans-serif; letter-spacing: .02em; color: var(--mute);
     }
 
-    /* SECTION 3: footer. The wordmark is made of dots that move away from the pointer. */
+    /* SECTION 2: footer. The wordmark is made of dots that move away from the pointer. */
     .site-footer { position: relative; height: 100svh; min-height: 480px; background: var(--ink); overflow: hidden; }
     #dots { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
     .site-footer .row {
@@ -80,11 +69,6 @@
     <button class="cue" id="cue" type="button">Scroll</button>
   </section>
 
-  <section class="bridge" id="bridge" aria-label="Aethel">
-    <canvas id="waves" aria-hidden="true"></canvas>
-    <!-- ONE LINE: swap the words here. -->
-    <p>Autonomous aircraft for offshore infrastructure.</p>
-  </section>
   <footer class="site-footer" id="footer">
     <canvas id="dots" role="img" aria-label="AETHEL"></canvas>
     <div class="row top">
@@ -107,6 +91,7 @@
         try { await document.fonts.load('400 200px Jost'); } catch (e) {}
         dpr = Math.min(devicePixelRatio || 1, 2);
         W = foot.clientWidth; H = foot.clientHeight;
+        if (!W || !H) return; // hidden or not laid out yet
         cv.width = W * dpr; cv.height = H * dpr;
         const pad = Math.max(18, Math.min(40, innerWidth * .032));
         // Fit the word to the width.
@@ -178,56 +163,9 @@
     })();
   </script>
   <script>
-    // Bridge: a calm sea of dots (the footer's language). One orange point crosses the gap once.
-    (() => {
-      const sec = document.getElementById('bridge'), cv = document.getElementById('waves'), ctx = cv.getContext('2d');
-      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      let W = 0, H = 0, dpr = 1, y0 = 0, vis = false, raf = 0, tStart = -1;
-      const size = () => { dpr = Math.min(devicePixelRatio || 1, 2); W = sec.clientWidth; H = sec.clientHeight; cv.width = W * dpr; cv.height = H * dpr; y0 = H * .58; };
-      const arc = u => { // quadratic path from the coast (left) over the gap to the platform (right)
-        const x0 = W * .08, x1 = W * .92, cx = W * .5, cy = y0 - H * .3, y = y0 - 2;
-        return [(1 - u) * (1 - u) * x0 + 2 * (1 - u) * u * cx + u * u * x1, (1 - u) * (1 - u) * y + 2 * (1 - u) * u * cy + u * u * y];
-      };
-      const ease = u => u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
-      const draw = now => {
-        raf = 0;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-        const t = reduced ? 0 : now / 1000, rows = Math.round(H / 22);
-        ctx.fillStyle = '#f4efe6';
-        for (let i = 0; i < rows; i++) {
-          const k = i / (rows - 1), y = y0 + (H - y0) * Math.pow(k, 1.7), sp = 6 + k * 18, amp = .6 + k * 7;
-          ctx.globalAlpha = .12 + .6 * k; const r = .5 + k * 1.5;
-          ctx.beginPath();
-          for (let x = (i % 2) * sp / 2; x < W; x += sp) {
-            const yy = y + Math.sin(x * .011 + t * .8 + i * .55) * amp;
-            ctx.moveTo(x + r, yy); ctx.arc(x, yy, r, 0, 6.2832);
-          }
-          ctx.fill();
-        }
-        // the crossing: starts 0.9 s after the bridge comes into view, takes 2.4 s, then rests at the platform
-        let u = reduced ? 1 : tStart < 0 ? 0 : Math.max(0, Math.min(1, (now - tStart - 900) / 2400));
-        if (u > 0) {
-          const e = ease(u); ctx.globalAlpha = .75; ctx.fillStyle = '#f4efe6';
-          for (let j = 0; j < 90; j++) { const v = (j / 90) * e; const [x, y] = arc(v); ctx.beginPath(); ctx.arc(x, y, .9, 0, 6.2832); ctx.fill(); }
-          const [px, py] = arc(e); ctx.globalAlpha = 1; ctx.fillStyle = '#ff8a3d'; ctx.beginPath(); ctx.arc(px, py, 4, 0, 6.2832); ctx.fill();
-        }
-        ctx.globalAlpha = 1;
-        if (vis && !reduced) raf = requestAnimationFrame(draw);
-      };
-      new IntersectionObserver(([e]) => {
-        vis = e.isIntersecting;
-        sec.classList.toggle('in', vis);
-        if (vis) { tStart = performance.now(); if (!raf) raf = requestAnimationFrame(draw); }
-        else if (!reduced) tStart = -1; // plays again next time it comes into view
-      }, { threshold: .4 }).observe(sec);
-      addEventListener('resize', () => { size(); if (!raf) raf = requestAnimationFrame(draw); });
-      size(); raf = requestAnimationFrame(draw);
-    })();
-  </script>
-  <script>
     (() => {
       const v = document.getElementById('teaser'), btn = document.getElementById('sound'), cue = document.getElementById('cue');
-      const sea = document.getElementById('bridge');
+      const next = document.getElementById('footer');
       const files = { wide: 'assets/video/teaser-16x9', tall: 'assets/video/teaser-9x16' };
       const kind = () => (innerHeight > innerWidth ? 'tall' : 'wide');
       let cur = '';
@@ -248,8 +186,8 @@
       };
       btn.addEventListener('click', () => { setSound(v.muted); if (v.ended && !v.muted) { v.currentTime = 0; } v.play().catch(() => {}); });
 
-      // When the film ends, move down to the bridge (only if the visitor is still on the film).
-      const down = () => sea.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      // When the film ends, move down to the footer (only if the visitor is still on the film).
+      const down = () => next.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
       cue.addEventListener('click', down);
       v.addEventListener('ended', () => { if (scrollY < innerHeight * .3) setTimeout(() => { if (scrollY < innerHeight * .3) down(); }, 600); });
 
